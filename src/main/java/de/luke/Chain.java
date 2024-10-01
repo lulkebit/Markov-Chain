@@ -3,18 +3,20 @@ package de.luke;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StreamTokenizer;
-import java.util.Hashtable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
-import java.util.Vector;
 
 public class Chain {
     static final int NPREF = 2;
     static final String NOWORD = "\n";
-    Hashtable statetab = new Hashtable(); // key = Prefix, value = suffix Vector
-    Prefix prefix = new Prefix(NPREF, NOWORD);
-    Random rand = new Random();
+    Map<Prefix, List<String>> statetab = new HashMap<>(); // key = Prefix, value = suffix List
+    Prefix prefix = new Prefix(NPREF, NOWORD); // Declare prefix as a class member
+    Random rand = new Random(System.currentTimeMillis());
 
-    void build (InputStream in) throws IOException {
+    void build(InputStream in) throws IOException {
         StreamTokenizer st = new StreamTokenizer(in);
 
         st.resetSyntax();
@@ -28,35 +30,46 @@ public class Chain {
         add(NOWORD);
     }
 
-    void add (String word) {
-        Vector suf = (Vector) statetab.get(prefix);
+    void add(String word) {
+        List<String> suf = statetab.get(prefix);
 
         if (suf == null) {
-            suf = new Vector();
+            suf = new ArrayList<>();
             statetab.put(new Prefix(prefix), suf);
         }
 
-        suf.addElement(word);
+        suf.add(word);
 
-        prefix.pref.removeElementAt(0);
-        prefix.pref.addElement(word);
+        prefix.pref.remove(0);
+        prefix.pref.add(word);
     }
 
-    void generate (int nwords) {
-        prefix = new Prefix(NPREF, NOWORD);
+    void generate(int nwords) {
+        // Randomly initialize the prefix
+        List<Prefix> keys = new ArrayList<>(statetab.keySet());
+        prefix = keys.get(rand.nextInt(keys.size()));
+
+        StringBuilder output = new StringBuilder();
 
         for (int i = 0; i < nwords; i++) {
-            Vector s = (Vector) statetab.get(prefix);
+            List<String> s = statetab.get(prefix);
+
+            if (s == null) {
+                break;
+            }
+
             int r = Math.abs(rand.nextInt()) % s.size();
-            String suf = (String) s.elementAt(r);
+            String suf = s.get(r);
 
             if (suf.equals(NOWORD)) {
                 break;
             }
 
-            System.out.print(suf + " ");
-            prefix.pref.removeElementAt(0);
-            prefix.pref.addElement(suf);
+            output.append(suf).append(" ");
+            prefix.pref.remove(0);
+            prefix.pref.add(suf);
         }
+
+        System.out.print(output.toString().trim());
     }
 }
